@@ -40,6 +40,19 @@ dotnet build
 dotnet run --project FutabaTelemetryTrace/FutabaTelemetryTrace.csproj
 ```
 
+### FFmpeg Requirement for Video Export
+
+To use the video export feature, you need FFmpeg binaries:
+
+1. Download FFmpeg from [https://ffmpeg.org/download.html](https://ffmpeg.org/download.html)
+2. Extract the binaries
+3. Either:
+   - Add FFmpeg to your system PATH, or
+   - Copy the FFmpeg DLLs to the application directory
+
+**Note**: The video export feature's frame rendering is currently a placeholder and requires additional implementation to capture chart frames.
+```
+
 ### Option 2: Download Release
 
 Download the latest release from the [Releases](https://github.com/AnakinXiu/FutabaTelemetryTrace/releases) page and run the executable.
