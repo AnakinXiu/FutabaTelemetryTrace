@@ -35,7 +35,7 @@ public class MainViewModel : ViewModelBase
         _videoExporter = new VideoExportService();
         _playbackTimer = new DispatcherTimer
         {
-            Interval = TimeSpan.FromMilliseconds(16) // ~60 FPS
+            Interval = TimeSpan.FromMilliseconds(8) // ~120 FPS
         };
         _playbackTimer.Tick += PlaybackTimer_Tick;
 
@@ -164,7 +164,7 @@ public class MainViewModel : ViewModelBase
     {
         if (_telemetryData == null) return;
 
-        CurrentTime += 0.016; // Advance by ~16ms
+        CurrentTime += 0.008; // Advance by ~8ms
 
         if (CurrentTime >= _telemetryData.Duration)
         {

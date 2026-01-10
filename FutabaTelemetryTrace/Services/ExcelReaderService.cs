@@ -10,6 +10,9 @@ namespace FutabaTelemetryTrace.Services;
 /// </summary>
 public class ExcelReaderService
 {
+    private const int StartRow = 3;
+    private const int MaxColumnSupport = 9;
+
     public ExcelReaderService()
     {
         // Set EPPlus license context
@@ -36,7 +39,7 @@ public class ExcelReaderService
         }
 
         var rowCount = worksheet.Dimension.Rows;
-        var colCount = worksheet.Dimension.Columns;
+        var colCount = Math.Min(worksheet.Dimension.Columns, MaxColumnSupport);
 
         if (rowCount < 2 || colCount < 2)
         {
@@ -47,14 +50,14 @@ public class ExcelReaderService
         var channelNames = new List<string>();
         for (var col = 2; col <= colCount; col++)
         {
-            var cellValue = worksheet.Cells[1, col].Value;
+            var cellValue = worksheet.Cells[StartRow, col].Value;
             var channelName = cellValue?.ToString() ?? $"Channel {col - 1}";
             channelNames.Add(channelName);
         }
 
         // Check if second row contains units or data
         var hasUnitRow = false;
-        var secondRowFirstValue = worksheet.Cells[2, 2].Value;
+        var secondRowFirstValue = worksheet.Cells[StartRow + 1, 1].Value;
         if (secondRowFirstValue != null && !double.TryParse(secondRowFirstValue.ToString(), out _))
         {
             hasUnitRow = true;
@@ -76,7 +79,7 @@ public class ExcelReaderService
         }
 
         // Read data rows
-        var dataStartRow = hasUnitRow ? 3 : 2;
+        var dataStartRow = hasUnitRow ? StartRow + 2 : StartRow + 1;
         for (var row = dataStartRow; row <= rowCount; row++)
         {
             var timestampValue = worksheet.Cells[row, 1].Value;
@@ -87,7 +90,7 @@ public class ExcelReaderService
                 continue;
             }
 
-            var dataPoint = new TelemetryDataPoint { Timestamp = timestamp };
+            var dataPoint = new TelemetryDataPoint { Timestamp = timestamp / 1000.0d };
 
             for (var col = 2; col <= colCount; col++)
             {
