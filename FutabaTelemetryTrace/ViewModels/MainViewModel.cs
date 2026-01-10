@@ -8,6 +8,7 @@ using LiveChartsCore.SkiaSharpView.Painting;
 using Microsoft.Win32;
 using SkiaSharp;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Threading;
@@ -55,6 +56,7 @@ public class MainViewModel : ViewModelBase
     public ICommand ExportVideoCommand { get; }
 
     public ObservableCollection<ISeries> Series { get; }
+    public ObservableCollection<TelemetryChannel> Channels { get; } = new();
 
     public double CurrentTime
     {
@@ -107,11 +109,17 @@ public class MainViewModel : ViewModelBase
             try
             {
                 StatusMessage = "Loading file...";
-                _telemetryData = _excelReader.ReadFromExcel(dialog.FileName);
-                
+                ClearChannelSubscriptions();
                 Series.Clear();
+
+                _telemetryData = _excelReader.ReadFromExcel(dialog.FileName);
+
                 foreach (var channel in _telemetryData.Channels)
                 {
+                    channel.IsVisible = true;
+                    channel.PropertyChanged += Channel_PropertyChanged;
+                    Channels.Add(channel);
+
                     var series = new LineSeries<ObservablePoint>
                     {
                         Name = channel.Name,
@@ -188,6 +196,9 @@ public class MainViewModel : ViewModelBase
             if (series?.Values is ObservableCollection<ObservablePoint> values)
             {
                 values.Clear();
+                if (!channel.IsVisible)
+                    continue;
+
                 foreach (var point in dataPointsToShow)
                 {
                     if (point.ChannelValues.TryGetValue(channel.Name, out var value))
@@ -196,6 +207,23 @@ public class MainViewModel : ViewModelBase
                     }
                 }
             }
+        }
+    }
+
+    private void ClearChannelSubscriptions()
+    {
+        foreach (var channel in Channels)
+        {
+            channel.PropertyChanged -= Channel_PropertyChanged;
+        }
+        Channels.Clear();
+    }
+
+    private void Channel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(TelemetryChannel.IsVisible))
+        {
+            UpdateChart();
         }
     }
 

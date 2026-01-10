@@ -6,8 +6,10 @@
         xmlns:local="clr-namespace:FutabaTelemetryTrace"
         xmlns:lvc="clr-namespace:LiveChartsCore.SkiaSharpView.WPF;assembly=LiveChartsCore.SkiaSharpView.WPF"
         xmlns:converters="clr-namespace:FutabaTelemetryTrace.Converters"
+        xmlns:viewModels="clr-namespace:FutabaTelemetryTrace.ViewModels"
         mc:Ignorable="d"
         Title="Futaba Telemetry Trace" Height="700" Width="1200"
+        d:DataContext="{d:DesignInstance viewModels:MainViewModel}"
         Background="#FF1E1E1E">
     <Window.Resources>
         <converters:ZeroToVisibilityConverter x:Key="ZeroToVisibilityConverter"/>
@@ -48,6 +50,40 @@
                           Foreground="#FF808080"
                           FontSize="16"
                           Visibility="{Binding MaxTime, Converter={StaticResource ZeroToVisibilityConverter}}"/>
+                <Border VerticalAlignment="Top"
+                        HorizontalAlignment="Left"
+                        Margin="10"
+                        Padding="8"
+                        Background="#B3000000"
+                        CornerRadius="4">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="Visibility" Value="Visible"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Channels.Count}" Value="0">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                    <StackPanel MaxHeight="120">
+                        <ItemsControl ItemsSource="{Binding Channels}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <CheckBox Content="{Binding Name}"
+                                              IsChecked="{Binding IsVisible, Mode=TwoWay}"
+                                              Margin="0,0,8,8"
+                                              Foreground="White"/>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
             </Grid>
         </Border>
 
