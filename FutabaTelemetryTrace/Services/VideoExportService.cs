@@ -9,7 +9,11 @@ using System.Windows.Media.Imaging;
 namespace FutabaTelemetryTrace.Services;
 
 /// <summary>
-/// Service for exporting chart animations to video
+/// Service for exporting chart animations to video.
+/// 
+/// IMPORTANT: This service requires FFmpeg binaries to be available on the system
+/// or bundled with the application. The binaries should be in the application directory
+/// or in the system PATH. Download FFmpeg from https://ffmpeg.org/
 /// </summary>
 public class VideoExportService
 {

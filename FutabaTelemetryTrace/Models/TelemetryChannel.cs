@@ -1,3 +1,5 @@
+using System.Windows.Media;
+
 namespace FutabaTelemetryTrace.Models;
 
 /// <summary>
@@ -9,5 +11,5 @@ public class TelemetryChannel
     public string Unit { get; set; } = string.Empty;
     public double MinValue { get; set; }
     public double MaxValue { get; set; }
-    public System.Windows.Media.Color DisplayColor { get; set; }
+    public Color DisplayColor { get; set; }
 }
