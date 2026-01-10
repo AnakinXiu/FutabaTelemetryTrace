@@ -8,7 +8,6 @@ using LiveChartsCore.SkiaSharpView.Painting;
 using Microsoft.Win32;
 using SkiaSharp;
 using System.Collections.ObjectModel;
-using System.IO;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Threading;

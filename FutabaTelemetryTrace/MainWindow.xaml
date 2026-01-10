@@ -5,9 +5,15 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:FutabaTelemetryTrace"
         xmlns:lvc="clr-namespace:LiveChartsCore.SkiaSharpView.WPF;assembly=LiveChartsCore.SkiaSharpView.WPF"
+        xmlns:converters="clr-namespace:FutabaTelemetryTrace.Converters"
         mc:Ignorable="d"
         Title="Futaba Telemetry Trace" Height="700" Width="1200"
         Background="#FF1E1E1E">
+    <Window.Resources>
+        <converters:ZeroToVisibilityConverter x:Key="ZeroToVisibilityConverter"/>
+        <converters:GreaterThanZeroConverter x:Key="GreaterThanZeroConverter"/>
+        <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+    </Window.Resources>
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -111,10 +117,4 @@
             </StatusBarItem>
         </StatusBar>
     </Grid>
-
-    <Window.Resources>
-        <local:ZeroToVisibilityConverter x:Key="ZeroToVisibilityConverter"/>
-        <local:GreaterThanZeroConverter x:Key="GreaterThanZeroConverter"/>
-        <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
-    </Window.Resources>
 </Window>
