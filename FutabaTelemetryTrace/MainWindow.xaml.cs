@@ -1,15 +1,5 @@
-﻿using System.Text;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
+﻿using System.Windows;
 using FutabaTelemetryTrace.ViewModels;
-using System.Globalization;
 
 namespace FutabaTelemetryTrace;
 
@@ -39,41 +29,5 @@ public partial class MainWindow : Window
             "About",
             MessageBoxButton.OK,
             MessageBoxImage.Information);
-    }
-}
-
-/// <summary>
-/// Converts 0 to Visible, non-zero to Collapsed
-/// </summary>
-public class ZeroToVisibilityConverter : IValueConverter
-{
-    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
-    {
-        if (value is double d)
-            return d == 0 ? Visibility.Visible : Visibility.Collapsed;
-        return Visibility.Visible;
-    }
-
-    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-    {
-        throw new NotImplementedException();
-    }
-}
-
-/// <summary>
-/// Converts value > 0 to true, 0 to false
-/// </summary>
-public class GreaterThanZeroConverter : IValueConverter
-{
-    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
-    {
-        if (value is double d)
-            return d > 0;
-        return false;
-    }
-
-    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-    {
-        throw new NotImplementedException();
     }
 }
