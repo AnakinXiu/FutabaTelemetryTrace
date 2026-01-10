@@ -38,7 +38,7 @@ public class VideoExportService
 
             using var videoFile = MediaBuilder.CreateContainer(outputPath).WithVideo(settings).Create();
 
-            for (int frame = 0; frame < totalFrames; frame++)
+            for (var frame = 0; frame < totalFrames; frame++)
             {
                 if (cancellationToken.IsCancellationRequested)
                     break;
@@ -71,11 +71,11 @@ public class VideoExportService
         formatConvertedBitmap.DestinationFormat = PixelFormats.Bgra32;
         formatConvertedBitmap.EndInit();
 
-        int width = formatConvertedBitmap.PixelWidth;
-        int height = formatConvertedBitmap.PixelHeight;
-        int stride = width * 4; // 4 bytes per pixel for BGRA32
+        var width = formatConvertedBitmap.PixelWidth;
+        var height = formatConvertedBitmap.PixelHeight;
+        var stride = width * 4; // 4 bytes per pixel for BGRA32
 
-        byte[] pixels = new byte[height * stride];
+        var pixels = new byte[height * stride];
         formatConvertedBitmap.CopyPixels(pixels, stride, 0);
 
         // Convert to ImageData - create array copy to avoid lifetime issues

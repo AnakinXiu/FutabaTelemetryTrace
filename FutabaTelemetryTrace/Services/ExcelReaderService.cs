@@ -35,8 +35,8 @@ public class ExcelReaderService
             throw new InvalidDataException("The Excel file is empty or invalid.");
         }
 
-        int rowCount = worksheet.Dimension.Rows;
-        int colCount = worksheet.Dimension.Columns;
+        var rowCount = worksheet.Dimension.Rows;
+        var colCount = worksheet.Dimension.Columns;
 
         if (rowCount < 2 || colCount < 2)
         {
@@ -45,7 +45,7 @@ public class ExcelReaderService
 
         // Read channel names from first row (skip first column which is timestamp)
         var channelNames = new List<string>();
-        for (int col = 2; col <= colCount; col++)
+        for (var col = 2; col <= colCount; col++)
         {
             var cellValue = worksheet.Cells[1, col].Value;
             var channelName = cellValue?.ToString() ?? $"Channel {col - 1}";
@@ -53,7 +53,7 @@ public class ExcelReaderService
         }
 
         // Check if second row contains units or data
-        bool hasUnitRow = false;
+        var hasUnitRow = false;
         var secondRowFirstValue = worksheet.Cells[2, 2].Value;
         if (secondRowFirstValue != null && !double.TryParse(secondRowFirstValue.ToString(), out _))
         {
@@ -62,7 +62,7 @@ public class ExcelReaderService
 
         // Create channels with colors
         var colors = GetChannelColors(channelNames.Count);
-        for (int i = 0; i < channelNames.Count; i++)
+        for (var i = 0; i < channelNames.Count; i++)
         {
             var channel = new TelemetryChannel
             {
@@ -76,23 +76,23 @@ public class ExcelReaderService
         }
 
         // Read data rows
-        int dataStartRow = hasUnitRow ? 3 : 2;
-        for (int row = dataStartRow; row <= rowCount; row++)
+        var dataStartRow = hasUnitRow ? 3 : 2;
+        for (var row = dataStartRow; row <= rowCount; row++)
         {
             var timestampValue = worksheet.Cells[row, 1].Value;
             if (timestampValue == null) continue;
 
-            if (!double.TryParse(timestampValue.ToString(), out double timestamp))
+            if (!double.TryParse(timestampValue.ToString(), out var timestamp))
             {
                 continue;
             }
 
             var dataPoint = new TelemetryDataPoint { Timestamp = timestamp };
 
-            for (int col = 2; col <= colCount; col++)
+            for (var col = 2; col <= colCount; col++)
             {
                 var cellValue = worksheet.Cells[row, col].Value;
-                if (cellValue != null && double.TryParse(cellValue.ToString(), out double value))
+                if (cellValue != null && double.TryParse(cellValue.ToString(), out var value))
                 {
                     dataPoint.ChannelValues[channelNames[col - 2]] = value;
                 }

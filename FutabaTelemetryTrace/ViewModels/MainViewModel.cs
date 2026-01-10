@@ -181,7 +181,7 @@ public class MainViewModel : ViewModelBase
             .Where(dp => dp.Timestamp <= CurrentTime)
             .ToList();
 
-        for (int i = 0; i < _telemetryData.Channels.Count; i++)
+        for (var i = 0; i < _telemetryData.Channels.Count; i++)
         {
             var channel = _telemetryData.Channels[i];
             var series = Series[i] as LineSeries<ObservablePoint>;
@@ -190,7 +190,7 @@ public class MainViewModel : ViewModelBase
                 values.Clear();
                 foreach (var point in dataPointsToShow)
                 {
-                    if (point.ChannelValues.TryGetValue(channel.Name, out double value))
+                    if (point.ChannelValues.TryGetValue(channel.Name, out var value))
                     {
                         values.Add(new ObservablePoint(point.Timestamp, value));
                     }
