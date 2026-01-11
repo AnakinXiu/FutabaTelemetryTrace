@@ -23,7 +23,9 @@ public class MainViewModel : ViewModelBase
     private readonly ExcelReaderService _excelReader;
     private readonly VideoExportService _videoExporter;
     private readonly DispatcherTimer _playbackTimer;
+    private readonly object _chartUpdateLock = new();
     private TelemetryData? _telemetryData;
+    private CancellationTokenSource? _chartUpdateCts;
     private double _currentTime;
     private double _windowDuration;
     private bool _isPlaying;
@@ -128,12 +130,14 @@ public class MainViewModel : ViewModelBase
                 StatusMessage = "Loading file...";
                 ClearChannelSubscriptions();
                 Series.Clear();
+                CancelPendingChartUpdate();
 
                 _telemetryData = _excelReader.ReadFromExcel(dialog.FileName);
 
+                var index = 0;
                 foreach (var channel in _telemetryData.Channels)
                 {
-                    channel.IsVisible = true;
+                    channel.IsVisible = index < 2;
                     channel.PropertyChanged += Channel_PropertyChanged;
                     Channels.Add(channel);
 
@@ -150,11 +154,13 @@ public class MainViewModel : ViewModelBase
                         LineSmoothness = 0
                     };
                     Series.Add(series);
+
+                    index++;
                 }
 
                 CurrentTime = 0;
                 OnPropertyChanged(nameof(MaxTime));
-                WindowDuration = 5; // Math.Min(_telemetryData.Duration / 100, 5000);
+                WindowDuration = 5; //_telemetryData.Duration;
                 StatusMessage = $"Loaded {_telemetryData.DataPoints.Count} data points from {_telemetryData.Channels.Count} channels";
             }
             catch (Exception ex)
@@ -201,49 +207,100 @@ public class MainViewModel : ViewModelBase
 
     private void UpdateChart()
     {
-        if (_telemetryData == null) return;
+        var telemetryData = _telemetryData;
+        if (telemetryData == null)
+            return;
+
+        CancellationTokenSource cts;
+        lock (_chartUpdateLock)
+        {
+            _chartUpdateCts?.Cancel();
+            _chartUpdateCts?.Dispose();
+            _chartUpdateCts = new CancellationTokenSource();
+            cts = _chartUpdateCts;
+        }
 
         var windowSize = WindowDuration;
         if (windowSize <= 0)
         {
-            windowSize = _telemetryData.Duration;
+            windowSize = telemetryData.Duration;
         }
 
         var windowStart = CurrentTime;
-        var windowEnd = Math.Min(windowStart + windowSize, _telemetryData.Duration);
+        var windowEnd = Math.Min(windowStart + windowSize, telemetryData.Duration);
 
-        var dataPointsToShow = _telemetryData.DataPoints
-            .Where(dp => dp.Timestamp >= windowStart && dp.Timestamp <= windowEnd)
-            .ToList();
-
-        for (var i = 0; i < _telemetryData.Channels.Count; i++)
+        var token = cts.Token;
+        Task.Run(() =>
         {
-            var channel = _telemetryData.Channels[i];
-            var series = Series[i] as LineSeries<ObservablePoint>;
-            if (series?.Values is ObservableCollection<ObservablePoint> values)
+            try
             {
-                values.Clear();
-                if (!channel.IsVisible)
-                    continue;
+                var dataPointsToShow = telemetryData.DataPoints
+                    .Where(dp => dp.Timestamp >= windowStart && dp.Timestamp <= windowEnd)
+                    .ToList();
 
-                foreach (var point in dataPointsToShow)
+                token.ThrowIfCancellationRequested();
+
+                var channelData = new List<IReadOnlyList<ObservablePoint>>(telemetryData.Channels.Count);
+                foreach (var channel in telemetryData.Channels)
                 {
-                    if (point.ChannelValues.TryGetValue(channel.Name, out var value))
+                    if (!channel.IsVisible)
                     {
-                        values.Add(new ObservablePoint(point.Timestamp, value));
+                        channelData.Add(Array.Empty<ObservablePoint>());
+                        continue;
                     }
+
+                    var points = new List<ObservablePoint>(dataPointsToShow.Count);
+                    foreach (var point in dataPointsToShow)
+                    {
+                        if (point.ChannelValues.TryGetValue(channel.Name, out var value))
+                        {
+                            points.Add(new ObservablePoint(point.Timestamp, value));
+                        }
+                    }
+                    channelData.Add(points);
                 }
+
+                token.ThrowIfCancellationRequested();
+
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    if (token.IsCancellationRequested)
+                        return;
+
+                    for (var i = 0; i < channelData.Count && i < Series.Count; i++)
+                    {
+                        if (Series[i] is LineSeries<ObservablePoint> lineSeries)
+                        {
+                            lineSeries.Values = channelData[i];
+                        }
+                    }
+                });
             }
-        }
+            catch (OperationCanceledException)
+            {
+                // Ignore cancelled updates
+            }
+        }, token);
     }
 
     private void ClearChannelSubscriptions()
     {
+        CancelPendingChartUpdate();
         foreach (var channel in Channels)
         {
             channel.PropertyChanged -= Channel_PropertyChanged;
         }
         Channels.Clear();
+    }
+
+    private void CancelPendingChartUpdate()
+    {
+        lock (_chartUpdateLock)
+        {
+            _chartUpdateCts?.Cancel();
+            _chartUpdateCts?.Dispose();
+            _chartUpdateCts = null;
+        }
     }
 
     private void Channel_PropertyChanged(object? sender, PropertyChangedEventArgs e)

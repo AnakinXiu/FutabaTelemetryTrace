@@ -127,8 +127,8 @@
                     <TextBlock Grid.Column="0" Text="Window:" Foreground="White" VerticalAlignment="Center" Margin="0,0,10,0"/>
                     <Slider Grid.Column="1"
                                Orientation="Horizontal"
-                               Minimum="0"
-                               Maximum="{Binding MaxTime}"
+                               Minimum="3"
+                               Maximum="10"
                                Value="{Binding WindowDuration, Mode=TwoWay}"
                                LargeChange="1"
                                SmallChange="0.1"
