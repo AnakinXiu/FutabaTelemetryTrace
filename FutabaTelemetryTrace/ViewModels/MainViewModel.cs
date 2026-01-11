@@ -25,6 +25,7 @@ public class MainViewModel : ViewModelBase
     private readonly DispatcherTimer _playbackTimer;
     private TelemetryData? _telemetryData;
     private double _currentTime;
+    private double _windowDuration;
     private bool _isPlaying;
     private bool _isExporting;
     private int _exportProgress;
@@ -96,6 +97,22 @@ public class MainViewModel : ViewModelBase
         set => SetProperty(ref _statusMessage, value);
     }
 
+    public double WindowDuration
+    {
+        get => _windowDuration;
+        set
+        {
+            var maxDuration = MaxTime;
+            var clamped = maxDuration > 0
+                ? Math.Max(0, Math.Min(value, maxDuration))
+                : Math.Max(0, value);
+            if (SetProperty(ref _windowDuration, clamped))
+            {
+                UpdateChart();
+            }
+        }
+    }
+
     private void LoadFile()
     {
         var dialog = new OpenFileDialog
@@ -137,6 +154,7 @@ public class MainViewModel : ViewModelBase
 
                 CurrentTime = 0;
                 OnPropertyChanged(nameof(MaxTime));
+                WindowDuration = 5; // Math.Min(_telemetryData.Duration / 100, 5000);
                 StatusMessage = $"Loaded {_telemetryData.DataPoints.Count} data points from {_telemetryData.Channels.Count} channels";
             }
             catch (Exception ex)
@@ -185,8 +203,17 @@ public class MainViewModel : ViewModelBase
     {
         if (_telemetryData == null) return;
 
+        var windowSize = WindowDuration;
+        if (windowSize <= 0)
+        {
+            windowSize = _telemetryData.Duration;
+        }
+
+        var windowStart = CurrentTime;
+        var windowEnd = Math.Min(windowStart + windowSize, _telemetryData.Duration);
+
         var dataPointsToShow = _telemetryData.DataPoints
-            .Where(dp => dp.Timestamp <= CurrentTime)
+            .Where(dp => dp.Timestamp >= windowStart && dp.Timestamp <= windowEnd)
             .ToList();
 
         for (var i = 0; i < _telemetryData.Channels.Count; i++)
