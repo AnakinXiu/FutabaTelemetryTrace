@@ -11,6 +11,8 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 
 namespace FutabaTelemetryTrace.ViewModels;
@@ -26,6 +28,8 @@ public class MainViewModel : ViewModelBase
     private readonly object _chartUpdateLock = new();
     private TelemetryData? _telemetryData;
     private CancellationTokenSource? _chartUpdateCts;
+    private FrameworkElement? _chartElement;
+    private int _currentExportFps = 30;
     private double _currentTime;
     private double _windowDuration;
     private bool _isPlaying;
@@ -60,6 +64,11 @@ public class MainViewModel : ViewModelBase
 
     public ObservableCollection<ISeries> Series { get; }
     public ObservableCollection<TelemetryChannel> Channels { get; } = new();
+    public FrameworkElement? ChartElement
+    {
+        get => _chartElement;
+        set => SetProperty(ref _chartElement, value);
+    }
 
     public double CurrentTime
     {
@@ -322,20 +331,54 @@ public class MainViewModel : ViewModelBase
 
         if (dialog.ShowDialog() == true)
         {
+            if (_telemetryData == null)
+            {
+                MessageBox.Show("Load telemetry data before exporting.", "Export", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            if (ChartElement == null)
+            {
+                MessageBox.Show("Chart is not ready for capture.", "Export", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
             try
             {
                 IsExporting = true;
                 ExportProgress = 0;
                 StatusMessage = "Exporting video...";
 
-                // This is a placeholder - actual implementation would require
-                // rendering the chart to bitmaps and passing to video encoder
-                await Task.Delay(1000); // Simulate export
+                var chart = ChartElement;
+                const int fps = 30;
+                _currentExportFps = fps;
+                var totalFrames = Math.Max(1, (int)Math.Ceiling(_telemetryData.Duration * fps));
 
-                MessageBox.Show("Video export is not yet fully implemented in this version.\n\nThis feature requires additional rendering infrastructure to capture chart frames.", 
-                    "Not Implemented", MessageBoxButton.OK, MessageBoxImage.Information);
+                if (chart.ActualWidth <= 0 || chart.ActualHeight <= 0)
+                {
+                    chart.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+                    chart.Arrange(new Rect(chart.DesiredSize));
+                }
 
-                StatusMessage = "Export cancelled";
+                var width = Math.Max(1, (int)Math.Ceiling(chart.ActualWidth));
+                var height = Math.Max(1, (int)Math.Ceiling(chart.ActualHeight));
+                var wasPlaying = IsPlaying;
+                Pause();
+
+                var progress = new Progress<int>(frame =>
+                {
+                    if (totalFrames == 0)
+                        return;
+                    ExportProgress = (int)Math.Clamp(Math.Round(frame * 100d / totalFrames), 0, 100);
+                });
+
+                await _videoExporter.ExportToVideoAsync(CaptureChartFrameAsync, totalFrames, fps, dialog.FileName, width, height, progress);
+
+                StatusMessage = "Export completed";
+                if (wasPlaying)
+                {
+                    Play();
+                }
             }
             catch (Exception ex)
             {
@@ -349,4 +392,41 @@ public class MainViewModel : ViewModelBase
             }
         }
     }
+
+    private Task<BitmapSource> CaptureChartFrameAsync(int frameIndex)
+    {
+        var chart = ChartElement ?? throw new InvalidOperationException("Chart element is not available for capture.");
+        if (_telemetryData == null)
+        {
+            throw new InvalidOperationException("Telemetry data is required before exporting.");
+        }
+
+        if (!Application.Current.Dispatcher.CheckAccess())
+        {
+            return Application.Current.Dispatcher.InvokeAsync(() => CaptureChartFrameInternal(chart, frameIndex)).Task;
+        }
+
+        return Task.FromResult(CaptureChartFrameInternal(chart, frameIndex));
+    }
+
+    private BitmapSource CaptureChartFrameInternal(FrameworkElement chart, int frameIndex)
+    {
+        var fps = Math.Max(1, _currentExportFps);
+        var targetTime = Math.Min(frameIndex / (double)fps, MaxTime);
+        CurrentTime = targetTime;
+
+        if (chart.ActualWidth <= 0 || chart.ActualHeight <= 0)
+        {
+            chart.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+            chart.Arrange(new Rect(chart.DesiredSize));
+        }
+
+        var width = Math.Max(1, (int)Math.Ceiling(chart.ActualWidth));
+        var height = Math.Max(1, (int)Math.Ceiling(chart.ActualHeight));
+        var dpi = VisualTreeHelper.GetDpi(chart);
+        var rtb = new RenderTargetBitmap(width, height, dpi.PixelsPerInchX, dpi.PixelsPerInchY, PixelFormats.Pbgra32);
+        rtb.Render(chart);
+        return rtb;
+    }
+
 }

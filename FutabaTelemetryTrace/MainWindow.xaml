@@ -43,6 +43,7 @@
         <Border Grid.Row="1" Margin="10" BorderBrush="#FF3F3F46" BorderThickness="1" Background="#FF252526">
             <Grid>
                 <lvc:CartesianChart Series="{Binding Series}"
+                                   x:Name="TelemetryChart"
                                    Background="#FF252526"/>
                 <TextBlock Text="Load an Excel file to display telemetry data"
                           VerticalAlignment="Center"

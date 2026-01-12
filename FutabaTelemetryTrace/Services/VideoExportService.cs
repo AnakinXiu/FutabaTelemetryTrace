@@ -62,7 +62,7 @@ public class VideoExportService
         }, cancellationToken);
     }
 
-    private ImageData ConvertBitmapSourceToImageData(BitmapSource bitmapSource)
+    private static ImageData ConvertBitmapSourceToImageData(BitmapSource bitmapSource)
     {
         // Ensure the bitmap is in a compatible format
         var formatConvertedBitmap = new FormatConvertedBitmap();

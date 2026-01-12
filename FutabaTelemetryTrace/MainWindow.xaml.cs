@@ -8,10 +8,20 @@ namespace FutabaTelemetryTrace;
 /// </summary>
 public partial class MainWindow : Window
 {
+    private readonly MainViewModel _viewModel;
+
     public MainWindow()
     {
         InitializeComponent();
-        DataContext = new MainViewModel();
+        _viewModel = new MainViewModel();
+        DataContext = _viewModel;
+
+        Loaded += OnLoaded;
+    }
+
+    private void OnLoaded(object sender, RoutedEventArgs e)
+    {
+        _viewModel.ChartElement = TelemetryChart;
     }
 
     private void Exit_Click(object sender, RoutedEventArgs e)
